@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"unicode/utf8"
 )
 
 func main() {
@@ -172,7 +173,7 @@ func segmentSentences(text string) []string {
 				continue
 			}
 			//drop short sentence
-			if len(trimmedSentence) < 5 {
+			if utf8.RuneCountInString(trimmedSentence) < 5 {
 				continue
 			}
 			//if findTowardsRight([]rune(trimmedSentence), 0, 'a') != -1 {
