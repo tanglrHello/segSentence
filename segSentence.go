@@ -51,8 +51,8 @@ func main() {
 	}
 	fmt.Println("blog file number:%d", blogFileNum)
 
-	//text := "李肃：“听说他搬。到加州去了，是这样吗？”IC·史密斯：“我不能对此发表评论。”李肃：“甚至还有人说他在南美洲被中国特工暗杀了。”IC·史密斯：“我可以戳穿那样的说法。那不是真的。”李肃：“直到今天仍然是这样？”IC·史密斯：“过去几天就说不好了。（笑）我也看过那样的报道，说他在危地马拉还是什么地方。”李肃：“没错，在海边。所以那不是真的？”sdadads"
-	// text := "《阿迪盛大的韩？山撒撒打算打算的》"
+	// text := "中央政府门户网站　www.gov.cn  2016-07-25 07:30  来源： 人民日报海外版7月22日，世界六大经济金融机构负责人齐聚北京，与中国国务院总理李克强举行了“1+6”圆桌对话会，共商国际经济大势和应对之策。他们分别是：世界银行行长金墉。"
+	// // text := "《阿迪盛大的韩？山撒撒打算打算的》"
 	// for _, s := range segmentSentences(text) {
 	// 	fmt.Println(s, "**")
 	// }
@@ -82,7 +82,7 @@ func segmentSentences(text string) []string {
 		for i, character := range runepara {
 			sepFlag := false
 			for _, esep := range extendSeps {
-				if character == esep && i < len(extendSeps)-1 && runepara[i+1] != rune('”') {
+				if character == esep && i < len(runepara)-1 && runepara[i+1] != rune('”') {
 					sepFlag = true
 					extendedpara = append(extendedpara, character)
 					extendedpara = append(extendedpara, rune(' '))
@@ -106,7 +106,6 @@ func segmentSentences(text string) []string {
 		runeArr = append(runeArr, rune(' '))
 
 		for i := 0; i < len(runeArr); i++ {
-
 			//preprocess
 			endsep := []rune{'。', '？', '！', '?', '!', '…'}
 			if i < len(runeArr)-1 {
