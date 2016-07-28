@@ -30,6 +30,7 @@ func main() {
 		text, _ := ioutil.ReadAll(blogfile)
 		blogfile.Close()
 		textstr := string(text)
+		textstr = strings.Replace(textstr, "\r", "", -1)
 		paras := strings.Split(textstr, "\n")
 		realtext := strings.Join(paras[1:], "\n")
 		//fmt.Println(realtext)
@@ -50,11 +51,11 @@ func main() {
 	}
 	fmt.Println("blog file number:%d", blogFileNum)
 
-	/*
-		text := "李肃：“听说他搬到加州去了，是这样吗？”IC·史密斯：“我不能对此发表评论。”李肃：“甚至还有人说他在南美洲被中国特工暗杀了。”IC·史密斯：“我可以戳穿那样的说法。那不是真的。”李肃：“直到今天仍然是这样？”IC·史密斯：“过去几天就说不好了。（笑）我也看过那样的报道，说他在危地马拉还是什么地方。”李肃：“没错，在海边。所以那不是真的？”IC"
-		for _, s := range segmentSentences(text) {
-			fmt.Println(s)
-		}*/
+	//text := "李肃：“听说他搬。到加州去了，是这样吗？”IC·史密斯：“我不能对此发表评论。”李肃：“甚至还有人说他在南美洲被中国特工暗杀了。”IC·史密斯：“我可以戳穿那样的说法。那不是真的。”李肃：“直到今天仍然是这样？”IC·史密斯：“过去几天就说不好了。（笑）我也看过那样的报道，说他在危地马拉还是什么地方。”李肃：“没错，在海边。所以那不是真的？”sdadads"
+	// text := "《阿迪盛大的韩？山撒撒打算打算的》"
+	// for _, s := range segmentSentences(text) {
+	// 	fmt.Println(s, "**")
+	// }
 }
 
 func segmentSentences(text string) []string {
@@ -62,32 +63,49 @@ func segmentSentences(text string) []string {
 	var segres []string
 
 	//sentenceSeps := "。？！：；｛｝（）［］【】“”‘’'……<>{}[]()?!;:\"\n\r"
-	sentenceSeps := "。？！：；｛｝【】'……{}?!;:\n\r "
+	sentenceSeps := "。？！；｛｝【】'……{}?!;\n\r 　" //two empty character in the end
 
 	outContainers := []string{"《》", "\"\"", "“”"} //outContainers and sentenceSeps should be exclusive
 	seps := []rune(sentenceSeps)
 
 	for _, para := range paragraphs {
 		if strings.TrimSpace(para) == "" {
-			//fmt.Println("emptyline")
 			continue
 		}
 
+		//extend spaces for runes belonging to sentenceSeps
+		extendSepsStr := "。？！?!"
+		extendSeps := []rune(extendSepsStr)
+		extendedpara := make([]rune, utf8.RuneCountInString(para))
+
+		runepara := []rune(para)
+		for i, character := range runepara {
+			sepFlag := false
+			for _, esep := range extendSeps {
+				if character == esep && i < len(extendSeps)-1 && runepara[i+1] != rune('”') {
+					sepFlag = true
+					extendedpara = append(extendedpara, character)
+					extendedpara = append(extendedpara, rune(' '))
+					break
+				}
+			}
+			if sepFlag == false {
+				extendedpara = append(extendedpara, character)
+			}
+		}
+
+		para = string(extendedpara)
+
 		para = strings.Replace(para, "”", "” ", -1)
 		para = strings.Replace(para, "\"", "\" ", -1)
-
-		//for _, sep := range seps {
-		//para = strings.Replace(para, sep, "。", -1)
-		//}
 
 		var flag rune
 		flag = '&'
 
 		runeArr := []rune(strings.TrimSpace(para))
+		runeArr = append(runeArr, rune(' '))
 
 		for i := 0; i < len(runeArr); i++ {
-			//determine whether this rune is in sep List
-			noSepFlag := false
 
 			//preprocess
 			endsep := []rune{'。', '？', '！', '?', '!', '…'}
@@ -100,12 +118,13 @@ func segmentSentences(text string) []string {
 				}
 			}
 
+			//determine whether this rune is in sep List
+			noSepFlag := false
 			//normal segment by seps
 			for _, sep := range seps {
 				if sep == runeArr[i] {
 					//test all pairs of outside container flags for this sep
 					for _, outPair := range outContainers {
-						//fmt.Println(outPair)
 						borders := strings.Split(outPair, "")
 						leftChar := []rune(borders[0])[0]
 						rightChar := []rune(borders[1])[0]
@@ -126,14 +145,19 @@ func segmentSentences(text string) []string {
 						if rightCharInLeft > leftPos {
 							continue
 						}
-						if leftCharInRight < rightPos {
+						if leftCharInRight < rightPos && leftCharInRight != -1 {
 							continue
 						}
 						noSepFlag = true
 						break
 					}
 					if noSepFlag == false {
-						runeArr[i] = flag
+						if strings.IndexRune(extendSepsStr, sep) != -1 {
+							runeArr[i+1] = flag
+							i++
+						} else {
+							runeArr[i] = flag
+						}
 					}
 					break
 				}
@@ -156,17 +180,11 @@ func segmentSentences(text string) []string {
 		}
 
 		tmp := string(runeArr)
-
-		tmp = strings.Replace(tmp, "  ", "&", -1)
-
-		tmp = strings.Replace(tmp, "#", "”&", -1)
+		tmp = strings.Replace(tmp, "  ", string(flag), -1)
 
 		sentences := strings.Split(tmp, string(flag))
 		//postprocess
-		//strings.Replace(s, old, new, n)
-		runeArr = []rune(strings.Replace(string(runeArr), "  ", string(flag), -1))
 		for _, sentence := range sentences {
-			//fmt.Println(para)
 			trimmedSentence := strings.TrimSpace(sentence)
 			//drop empty sentence
 			if trimmedSentence == "" {
@@ -176,10 +194,6 @@ func segmentSentences(text string) []string {
 			if utf8.RuneCountInString(trimmedSentence) < 5 {
 				continue
 			}
-			//if findTowardsRight([]rune(trimmedSentence), 0, 'a') != -1 {
-			//fmt.Println("??")
-			//fmt.Println(trimmedSentence)
-			//}
 			segres = append(segres, trimmedSentence)
 		}
 	}
